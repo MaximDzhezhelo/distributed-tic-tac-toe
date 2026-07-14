@@ -1,0 +1,3 @@
+rootProject.name = 'distributed-tic-tac-toe'
+
+include 'common', 'game-engine', 'game-session', 'web-ui', 'api-gateway', 'discovery-server', 'integration-tests'

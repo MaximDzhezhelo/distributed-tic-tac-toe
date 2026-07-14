@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProperty name="appName" scope="context" source="spring.application.name" defaultValue="application"/>
+    <property name="LOG_FILE" value="${LOG_PATH:-logs}/${appName}.log"/>
+
+    <property name="CONSOLE_LOG_PATTERN" value="%d{HH:mm:ss.SSS} %5p %t [%X{cid:-},%X{gameId:-}] %c{2} - %m%n"/>
+    <property name="FILE_LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %5p %t [%X{cid:-},%X{gameId:-}] %c{2} - %m%n"/>
+
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <include resource="org/springframework/boot/logging/logback/file-appender.xml"/>
+
+    <logger name="com.tictactoe" level="DEBUG"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

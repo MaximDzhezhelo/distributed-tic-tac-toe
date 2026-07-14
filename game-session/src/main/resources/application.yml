@@ -1,0 +1,31 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: game-session
+  cloud:
+    loadbalancer:
+      cache:
+        enabled: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    registry-fetch-interval-seconds: 5
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+
+engine:
+  # a service id resolved through Eureka; set load-balanced: false to use a
+  # direct URL instead (tests do this)
+  base-url: http://game-engine
+  load-balanced: true
+  connect-timeout: 2s
+  read-timeout: 5s
+
+simulation:
+  # pause between automated moves so the UI can show the game unfolding
+  move-delay-ms: 400

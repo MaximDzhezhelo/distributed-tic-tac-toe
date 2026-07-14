@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tic Tac Toe — Microservice Battle</title>
+    <style>
+        :root {
+            --bg: #0f1220;
+            --panel: #181c2f;
+            --line: #2a3050;
+            --text: #e8eaf6;
+            --muted: #8b91b0;
+            --x: #4fc3f7;
+            --o: #ffb74d;
+            --accent: #7c6cf0;
+            --err: #ef5350;
+            --ok: #66bb6a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 16px;
+        }
+
+        h1 {
+            font-size: 26px;
+            letter-spacing: 0.5px;
+        }
+
+        h1 .x {
+            color: var(--x);
+        }
+
+        h1 .o {
+            color: var(--o);
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin-top: 6px;
+            font-size: 14px;
+        }
+
+        .layout {
+            display: flex;
+            gap: 28px;
+            margin-top: 32px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .pill {
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #232847;
+            border: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        .pill.running {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .pill.won {
+            color: var(--ok);
+            border-color: var(--ok);
+        }
+
+        .pill.draw {
+            color: var(--o);
+            border-color: var(--o);
+        }
+
+        .pill.failed {
+            color: var(--err);
+            border-color: var(--err);
+        }
+
+        .turn {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 96px);
+            grid-template-rows: repeat(3, 96px);
+            gap: 10px;
+        }
+
+        .cell {
+            background: #12152a;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 46px;
+            font-weight: 700;
+            transition: transform 0.15s ease;
+        }
+
+        .cell.x {
+            color: var(--x);
+        }
+
+        .cell.o {
+            color: var(--o);
+        }
+
+        .cell.last {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(124, 108, 240, 0.35);
+            transform: scale(1.04);
+        }
+
+        button {
+            margin-top: 22px;
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 12px;
+            background: var(--accent);
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover:not(:disabled) {
+            filter: brightness(1.12);
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .side {
+            width: 300px;
+        }
+
+        .side h2 {
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .log {
+            list-style: none;
+            max-height: 320px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .log li {
+            background: #12152a;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-size: 13px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .log .num {
+            color: var(--muted);
+            min-width: 26px;
+        }
+
+        .log .sym {
+            font-weight: 700;
+        }
+
+        .log .sym.x {
+            color: var(--x);
+        }
+
+        .log .sym.o {
+            color: var(--o);
+        }
+
+        .log .empty {
+            color: var(--muted);
+            border: none;
+            background: none;
+        }
+
+        .session-id {
+            margin-top: 14px;
+            font-size: 11px;
+            color: var(--muted);
+            word-break: break-all;
+        }
+
+        .error {
+            display: none;
+            margin-top: 18px;
+            max-width: 640px;
+            background: rgba(239, 83, 80, 0.12);
+            border: 1px solid var(--err);
+            color: #ff8a80;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+
+        .error.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+<h1><span class="x">X</span> Tic Tac Toe <span class="o">O</span></h1>
+<p class="subtitle">Two microservices battle it out — sit back and watch</p>
+
+<div class="layout">
+    <div class="card">
+        <div class="status-row">
+            <span id="status" class="pill">Idle</span>
+            <span id="turn" class="turn"></span>
+        </div>
+        <div id="board" class="board"></div>
+        <button id="start">Start Simulation</button>
+        <div id="sessionId" class="session-id"></div>
+    </div>
+
+    <div class="card side">
+        <h2>Move history</h2>
+        <ul id="log" class="log">
+            <li class="empty">No moves yet</li>
+        </ul>
+    </div>
+</div>
+
+<div id="error" class="error"></div>
+
+<script>
+    const boardEl = document.getElementById('board');
+    const statusEl = document.getElementById('status');
+    const turnEl = document.getElementById('turn');
+    const logEl = document.getElementById('log');
+    const startBtn = document.getElementById('start');
+    const errorEl = document.getElementById('error');
+    const sessionIdEl = document.getElementById('sessionId');
+
+    const DEFAULT_API_BASE = 'http://localhost:8082';
+    let apiBase = null;
+    let eventSource = null;
+    let pollTimer = null;
+
+    async function loadConfig() {
+        try {
+            const config = await request('/config');
+            apiBase = config.sessionBaseUrl;
+        } catch (err) {
+            // /config is only available when served by the web-ui service;
+            // fall back to the default session service address otherwise
+            apiBase = DEFAULT_API_BASE;
+            console.warn('Could not load /config, falling back to ' + apiBase, err);
+        }
+    }
+
+    function initBoard() {
+        boardEl.innerHTML = '';
+        for (let i = 0; i < 9; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.id = 'cell-' + i;
+            boardEl.appendChild(cell);
+        }
+    }
+
+    function setError(message) {
+        errorEl.textContent = message || '';
+        errorEl.classList.toggle('visible', Boolean(message));
+    }
+
+    async function request(url, options) {
+        let response;
+        try {
+            response = await fetch(url, options);
+        } catch {
+            throw new Error('Cannot reach ' + url + '. Is the service running?');
+        }
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(body.detail || body.title || ('Request failed with HTTP ' + response.status));
+        }
+        return body;
+    }
+
+    async function startSimulation() {
+        setError(null);
+        startBtn.disabled = true;
+        startBtn.textContent = 'Simulating…';
+        try {
+            if (apiBase === null) {
+                await loadConfig();
+            }
+            const session = await request(apiBase + '/sessions', {method: 'POST'});
+            sessionIdEl.textContent = 'Session: ' + session.sessionId;
+            render(session);
+            subscribe(session.sessionId);
+            await request(apiBase + '/sessions/' + session.sessionId + '/simulate', {method: 'POST'});
+        } catch (err) {
+            setError(err.message);
+            resetControls();
+        }
+    }
+
+    function subscribe(sessionId) {
+        closeStreams();
+        eventSource = new EventSource(apiBase + '/sessions/' + sessionId + '/events');
+        eventSource.addEventListener('update', event => handleUpdate(JSON.parse(event.data)));
+        eventSource.onerror = () => {
+            // SSE dropped (proxy, network, server restart) — fall back to polling
+            closeStreams();
+            startPolling(sessionId);
+        };
+    }
+
+    function startPolling(sessionId) {
+        pollTimer = setInterval(async () => {
+            try {
+                handleUpdate(await request(apiBase + '/sessions/' + sessionId));
+            } catch (err) {
+                closeStreams();
+                setError(err.message);
+                resetControls();
+            }
+        }, 700);
+    }
+
+    function handleUpdate(session) {
+        render(session);
+        if (session.status === 'FINISHED' || session.status === 'FAILED') {
+            closeStreams();
+            resetControls();
+        }
+    }
+
+    function render(session) {
+        const lastMove = session.moves.length
+            ? session.moves[session.moves.length - 1].position
+            : -1;
+
+        session.board.forEach((value, i) => {
+            const cell = document.getElementById('cell-' + i);
+            cell.textContent = value || '';
+            cell.className = 'cell'
+                + (value === 'X' ? ' x' : value === 'O' ? ' o' : '')
+                + (i === lastMove ? ' last' : '');
+        });
+
+        renderStatus(session);
+        renderLog(session.moves);
+        if (session.status === 'FAILED' && session.error) {
+            setError('Simulation failed: ' + session.error);
+        }
+    }
+
+    function renderStatus(session) {
+        turnEl.textContent = '';
+        if (session.status === 'FAILED') {
+            statusEl.textContent = 'Failed';
+            statusEl.className = 'pill failed';
+        } else if (session.gameStatus === 'WON') {
+            statusEl.textContent = session.winner + ' wins!';
+            statusEl.className = 'pill won';
+        } else if (session.gameStatus === 'DRAW') {
+            statusEl.textContent = 'Draw';
+            statusEl.className = 'pill draw';
+        } else if (session.status === 'RUNNING' || session.status === 'CREATED') {
+            statusEl.textContent = 'In progress';
+            statusEl.className = 'pill running';
+            if (session.nextPlayer) {
+                turnEl.textContent = session.nextPlayer + ' to move';
+            }
+        } else {
+            statusEl.textContent = 'Idle';
+            statusEl.className = 'pill';
+        }
+    }
+
+    function renderLog(moves) {
+        if (!moves.length) {
+            logEl.innerHTML = '<li class="empty">No moves yet</li>';
+            return;
+        }
+        logEl.innerHTML = moves.map(move => {
+            const row = Math.floor(move.position / 3) + 1;
+            const col = (move.position % 3) + 1;
+            return '<li>'
+                + '<span class="num">#' + move.number + '</span>'
+                + '<span class="sym ' + move.player.toLowerCase() + '">' + move.player + '</span>'
+                + '<span>row ' + row + ', col ' + col + '</span>'
+                + '</li>';
+        }).join('');
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function closeStreams() {
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+        }
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    function resetControls() {
+        startBtn.disabled = false;
+        startBtn.textContent = 'Start Simulation';
+    }
+
+    initBoard();
+    loadConfig();
+    startBtn.addEventListener('click', startSimulation);
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+services:
+  discovery-server:
+    build:
+      context: .
+      args:
+        MODULE: discovery-server
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8761/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  game-engine:
+    build:
+      context: .
+      args:
+        MODULE: game-engine
+    ports:
+      - "8081:8081"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8081/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  game-session:
+    build:
+      context: .
+      args:
+        MODULE: game-session
+    ports:
+      - "8082:8082"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+    depends_on:
+      game-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8082/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  web-ui:
+    build:
+      context: .
+      args:
+        MODULE: web-ui
+    ports:
+      - "8080:8080"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+      # the BROWSER calls the session service; send it through the gateway's
+      # host-published port so all traffic uses the single entry point
+      SESSION_BASE_URL: http://localhost:8090
+    depends_on:
+      game-session:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8080/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  api-gateway:
+    build:
+      context: .
+      args:
+        MODULE: api-gateway
+    ports:
+      - "8090:8090"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-server:8761/eureka
+    depends_on:
+      web-ui:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8090/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12

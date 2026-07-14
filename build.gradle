@@ -1,0 +1,40 @@
+plugins {
+    id 'base'
+    id 'org.springframework.boot' version '4.1.0' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
+}
+
+// runtime logs (logs/ next to wherever a service was started) are wiped together
+// with build outputs so `clean` resets the checkout completely
+clean {
+    delete 'logs'
+}
+
+allprojects {
+    group = 'com.tictactoe'
+    version = '1.0.0'
+    ext.springCloudVersion = '2025.1.2'
+}
+
+subprojects {
+    apply plugin: 'java'
+
+    repositories {
+        mavenCentral()
+    }
+
+    clean {
+        delete 'logs'
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.release = 25
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+        testLogging {
+            events 'passed', 'skipped', 'failed'
+        }
+    }
+}

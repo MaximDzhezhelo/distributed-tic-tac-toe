@@ -1,0 +1,15 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: game-engine
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    registry-fetch-interval-seconds: 5
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
